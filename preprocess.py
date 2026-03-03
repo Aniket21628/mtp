@@ -45,7 +45,7 @@ def preprocess_data(df):
           f"Optimized Matrix Shape: {df.shape}")
     
     # 2.2 Segregation of continuous features and discrete categorical targets
-    feature_df = df.drop('Target_Label', axis=1).apply(pd.to_numeric, errors='coerce').fillna(0.0)
+    feature_df = df.drop(['Target_Label', 'Source_File', 'Split'], axis=1).apply(pd.to_numeric, errors='coerce').fillna(0.0)
     X = feature_df.values
     y_text = df['Target_Label'].astype(str).values
     
@@ -55,9 +55,15 @@ def preprocess_data(df):
     
     # 2.4 Data Segregation: 80% Training Matrix, 20% Evaluation Matrix
     # Stratification mathematically guarantees proportional class representation in both splits
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y_encoded, test_size=0.20, random_state=42, stratify=y_encoded
-    )
+    if 'Split' not in df.columns:
+        raise KeyError("Split column missing. Re-run data loading with updated load_data.py.")
+    train_mask = df['Split'].astype(str).eq('train').values
+    test_mask = df['Split'].astype(str).eq('test').values
+
+    X_train = X[train_mask]
+    X_test = X[test_mask]
+    y_train = y_encoded[train_mask]
+    y_test = y_encoded[test_mask]
     
     # 2.5 Z-score Normalization (StandardScaler)
     # The scaler is strictly fitted ONLY on training data to prevent temporal data leakage
@@ -68,7 +74,17 @@ def preprocess_data(df):
     # 2.6 Geometric Class Balancing via SMOTE
     # SMOTE is applied EXCLUSIVELY to the training matrix to preserve realistic evaluation conditions
     print(" Executing SMOTE Synthetic Over-sampling on training matrix...")
-    smote = SMOTE(random_state=42)
+    class_counts = pd.Series(y_train).value_counts()
+    majority_count = int(class_counts.max())
+    target_count = int(majority_count * 0.5)
+
+    sampling_strategy = {
+        int(cls): int(target_count)
+        for cls, count in class_counts.items()
+        if int(count) < int(target_count)
+    }
+
+    smote = SMOTE(random_state=42, sampling_strategy=sampling_strategy)
     X_train_balanced, y_train_balanced = smote.fit_resample(X_train_scaled, y_train)
     print(f" SMOTE Protocol Complete. Balanced Training Matrix Shape: {X_train_balanced.shape}")
     

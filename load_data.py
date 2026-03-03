@@ -44,6 +44,12 @@ def load_and_aggregate_data(data_dir='dataset/'):
     if not all_files:
         raise FileNotFoundError(f"CRITICAL ERROR: No CSV files located in '{data_dir}'. "
                                 f"Please populate the directory with N-BaIoT data files.")
+
+    rng = np.random.RandomState(42)
+    shuffled_files = all_files.copy()
+    rng.shuffle(shuffled_files)
+    split_idx = int(len(shuffled_files) * 0.8)
+    train_files = set(shuffled_files[:split_idx])
     
     df_list = []
     for file in all_files:
@@ -85,6 +91,8 @@ def load_and_aggregate_data(data_dir='dataset/'):
 
         for chunk_df in chunk_iter:
             chunk_df["Target_Label"] = label
+            chunk_df["Source_File"] = os.path.basename(file)
+            chunk_df["Split"] = "train" if file in train_files else "test"
             df_list.append(chunk_df)
         
     # Concatenate all device and attack traffic into a single continuous matrix
