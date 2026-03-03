@@ -77,11 +77,22 @@ def load_and_aggregate_data(data_dir='dataset/'):
             continue 
             
         # Read the individual CSV and append the designated label column
-        temp_df = pd.read_csv(file)
-        temp_df = label
-        df_list.append(temp_df)
+        # Use chunked reading to reduce peak memory usage for large N-BaIoT CSVs
+        try:
+            chunk_iter = pd.read_csv(file, chunksize=200_000, low_memory=False)
+        except TypeError:
+            chunk_iter = pd.read_csv(file, chunksize=200_000)
+
+        for chunk_df in chunk_iter:
+            chunk_df["Target_Label"] = label
+            df_list.append(chunk_df)
         
     # Concatenate all device and attack traffic into a single continuous matrix
+    if not df_list:
+        raise FileNotFoundError(
+            "CRITICAL ERROR: No recognized CSV files were loaded. "
+            "Check filenames match expected N-BaIoT naming patterns."
+        )
     master_df = pd.concat(df_list, axis=0, ignore_index=True)
     print(f" Data Ingestion Complete. Unified Matrix Shape: {master_df.shape}")
     return master_df

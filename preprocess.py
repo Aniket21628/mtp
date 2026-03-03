@@ -45,8 +45,9 @@ def preprocess_data(df):
           f"Optimized Matrix Shape: {df.shape}")
     
     # 2.2 Segregation of continuous features and discrete categorical targets
-    X = df.drop('Target_Label', axis=1).values
-    y_text = df.values
+    feature_df = df.drop('Target_Label', axis=1).apply(pd.to_numeric, errors='coerce').fillna(0.0)
+    X = feature_df.values
+    y_text = df['Target_Label'].astype(str).values
     
     # 2.3 Label Encoding: Transformation of string labels to integer classes (0-10)
     label_encoder = LabelEncoder()

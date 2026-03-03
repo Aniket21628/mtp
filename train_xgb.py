@@ -46,7 +46,7 @@ def train_xgboost(X_train_encoded, y_train):
     
     # Define rigorous hyperparameters for multi-class tree boosting
     xgb_model = xgb.XGBClassifier(
-        objective='multi:softprob',  # Outputs probability distribution across all classes
+        objective='multi:softmax',  # Outputs probability distribution across all classes
         num_class=11,                # 11 distinct operational classes
         learning_rate=0.1,           # Shrinkage factor to prevent overfitting
         n_estimators=200,            # Maximum number of sequential boosting rounds
